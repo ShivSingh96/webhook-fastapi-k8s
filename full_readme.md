@@ -268,6 +268,15 @@ This journey was a perfect example of learning by doing — getting our hands di
 
 ---
 
+<<<<<<< HEAD
+# 🧱 Future Improvements (Optional)
+
+Integrate with cert-manager to automate cert generation.
+
+- Support multiple webhook versions (v1, v1beta1).
+- Handle dynamic mutation based on request fields.
+- Add unit tests for validation/mutation logic.
+=======
 # 💬 Author's Note
 
 If this helped you, **star** this repository and feel free to open issues or improvements! 🚀
@@ -289,3 +298,4 @@ Support multiple webhook versions (v1, v1beta1).
 Handle dynamic mutation based on request fields.
 
 Add unit tests for validation/mutation logic.
+>>>>>>> main
