@@ -191,10 +191,6 @@ This certificate process is the **invisible spine** of the webhook setup. Withou
 # 📜 Steps to Create this YAML Properly:
 Base64 encode the server.crt and server.key files:
 
-  
-📜 Steps to Create this YAML Properly:
-Base64 encode the server.crt and server.key files:
-
 ```bash
 # Encode certificate
 cat certs/server.crt | base64 | tr -d '\n'
@@ -209,10 +205,4 @@ Copy the base64 outputs and paste them into the YAML:
   tls.key: LS0tLS1CRUdJTiBSU0EgUF... (your key base64 content)
 ```
 
-Copy the base64 outputs and paste them into the YAML:
-
-```yaml
-  tls.crt: LS0tLS1CRUdJTiBDRVJUS... (your cert base64 content)
-  tls.key: LS0tLS1CRUdJTiBSU0EgUF... (your key base64 content)
-```
 ---
