@@ -268,24 +268,10 @@ This journey was a perfect example of learning by doing — getting our hands di
 
 ---
 
-# 💬 Author's Note
+# 🧱 Future Improvements (Optional)
 
-If this helped you, **star** this repository and feel free to open issues or improvements! 🚀
-
----
-
----
-
----
-
-Would you also like me to give you a **project folder structure** recommendation for this webhook repo, just to make it even more clean and production-grade? 🎯  
-(Let’s make it so good that even a Kubernetes Architect would nod in approval.) 🚀🌟
-
-🧱 Future Improvements (Optional)
 Integrate with cert-manager to automate cert generation.
 
-Support multiple webhook versions (v1, v1beta1).
-
-Handle dynamic mutation based on request fields.
-
-Add unit tests for validation/mutation logic.
+- Support multiple webhook versions (v1, v1beta1).
+- Handle dynamic mutation based on request fields.
+- Add unit tests for validation/mutation logic.

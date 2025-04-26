@@ -187,28 +187,21 @@ bash cert-gen.sh
 This certificate process is the **invisible spine** of the webhook setup. Without it, **no matter how perfect your code**, Kubernetes will simply refuse to speak with you.
 
 ---
-
----
   
-📜 Steps to Create this YAML Properly:
+# 📜 Steps to Create this YAML Properly:
 Base64 encode the server.crt and server.key files:
 
-bash
-Copy
-Edit
+```bash
 # Encode certificate
 cat certs/server.crt | base64 | tr -d '\n'
 
 # Encode private key
 cat certs/server.key | base64 | tr -d '\n'
+```
 Copy the base64 outputs and paste them into the YAML:
 
-yaml
-Copy
-Edit
+```yaml
   tls.crt: LS0tLS1CRUdJTiBDRVJUS... (your cert base64 content)
   tls.key: LS0tLS1CRUdJTiBSU0EgUF... (your key base64 content)
-
----
-
+```
 ---
