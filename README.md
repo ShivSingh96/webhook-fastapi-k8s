@@ -1,7 +1,5 @@
 # FastAPI Kubernetes Admission Webhooks (Validating + Mutating)
 
-> **A journey from scratch to success — facing real-world hurdles, solving them, and documenting them to help others.**
-
 ---
 
 ## 🚀 Project Goal
