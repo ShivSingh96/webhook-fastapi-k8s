@@ -1,9 +1,3 @@
-Perfect — let's make it *legendary*. 📜🔥
-
-Here’s the **full README.md** draft based on everything we went through:
-
----
-
 # FastAPI Kubernetes Admission Webhooks (Validating + Mutating)
 
 > **A journey from scratch to success — facing real-world hurdles, solving them, and documenting them to help others.**
@@ -212,7 +206,3 @@ Facing the mud, fighting through, and standing proud at the end.
 ---
 
 ---
-
-Would you like me next to also create the `cert-gen.sh` script file and a sample `deployment.yaml` + `service.yaml` if you want the repo to be fully plug-and-play? 🚀  
-*(Then your GitHub repo will be 100% ready!)*  
-Shall I proceed? 🔥
