@@ -22,7 +22,7 @@ spec:
           volumeMounts:
             - name: tls-certs
               #mountPath: /certs
-              mountPath: /etc/certs
+              mountPath: /certs
               # The path where the certs are mounted inside the container
               # This should match the path used in your webhook.py
               readOnly: true
