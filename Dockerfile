@@ -3,7 +3,4 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ .
-#COPY src/main.py .
-#CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile", "/certs/tls.key", "--ssl-certfile", "/certs/tls.crt"]
-#CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile=/etc/certs/server.key", "--ssl-certfile=/etc/certs/server.crt"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile", "/etc/certs/server.key", "--ssl-certfile", "/etc/certs/server.crt"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile", "/certs/tls.key", "--ssl-certfile", "/certs/tls.crt"]

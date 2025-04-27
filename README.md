@@ -45,54 +45,101 @@ cd webhook-fastapi-k8s
 **Important:**  
 Kubernetes **requires HTTPS endpoints** for admission webhooks.
 
-We generate a **self-signed CA** and then **sign a server certificate**.
+We generate a **self-signed CA** and then **sign a server certificate** for the webhook's Kubernetes service DNS name.
 
-> We first struggled because initially the certs were invalid/mismatched, so *do not skip this carefully*.
-
-Inside `certs/`, create a `cert-gen.sh` like this:
+Use the script `generate-cert.sh`:
 
 ```bash
 #!/bin/bash
 
-# Generate CA key and certificate
-openssl genrsa -out ca.key 2048
-openssl req -x509 -new -nodes -key ca.key -subj "/CN=admission_ca" -days 10000 -out ca.crt
+set -e
 
-# Generate Server key and CSR
-openssl genrsa -out server.key 2048
-openssl req -new -key server.key -subj "/CN=webhook.default.svc" -out server.csr
+SERVICE="webhook"
+NAMESPACE="default"
+TMPDIR="./certs"
 
-# Sign Server cert with CA
-openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 10000 -extensions v3_ext -extfile <(printf "subjectAltName=DNS:webhook.default.svc")
+mkdir -p $TMPDIR
+
+echo "Generating CA cert..."
+openssl genrsa -out $TMPDIR/ca.key 2048
+openssl req -x509 -new -nodes -key $TMPDIR/ca.key -subj "/CN=webhook-ca" -days 3650 -out $TMPDIR/ca.crt
+
+# Create openssl config file for SAN
+cat > $TMPDIR/server-openssl.cnf <<EOF
+[req]
+req_extensions = v3_req
+distinguished_name = req_distinguished_name
+
+[req_distinguished_name]
+# empty
+
+[v3_req]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = ${SERVICE}
+DNS.2 = ${SERVICE}.${NAMESPACE}
+DNS.3 = ${SERVICE}.${NAMESPACE}.svc
+DNS.4 = ${SERVICE}.${NAMESPACE}.svc.cluster.local
+EOF
+
+echo "Generating server key and CSR..."
+openssl genrsa -out $TMPDIR/server.key 2048
+openssl req -new -key $TMPDIR/server.key -subj "/CN=${SERVICE}.${NAMESPACE}.svc" \
+  -out $TMPDIR/server.csr -config $TMPDIR/server-openssl.cnf
+
+echo "Signing server cert with CA including SANs..."
+openssl x509 -req -in $TMPDIR/server.csr -CA $TMPDIR/ca.crt -CAkey $TMPDIR/ca.key \
+  -CAcreateserial -out $TMPDIR/server.crt -days 3650 \
+  -extensions v3_req -extfile $TMPDIR/server-openssl.cnf
+
+echo "Done. Files:"
+ls -l $TMPDIR
+
+echo ""
+echo "Base64 CA cert (for caBundle in webhook config):"
+cat $TMPDIR/ca.crt | base64 | tr -d '\n'
+echo ""
 ```
 
 Now run:
 
 ```bash
-cd certs
-chmod +x cert-gen.sh
-./cert-gen.sh
+chmod +x generate-cert.sh
+./generate-cert.sh
 ```
 
-✅ It will create: `ca.crt`, `ca.key`, `server.crt`, `server.key`
+✅ It will create: `ca.crt`, `ca.key`, `server.crt`, `server.key` , `server.csr` 
+While generating the CSR (Certificate Signing Request), It will sign server cert with CA including SANs.
 
 ---
 
-### 3. Dockerize the FastAPI Server
+### 3. Create Kubernetes Secrets for Certificates
+Unlike hardcoding certs into the pod, we create Kubernetes Secrets to mount certificates securely inside the webhook pod.
+
+Apply the secret manifest:
+
+```bash
+kubectl apply -f manifests/secret.yaml
+```
+This mounts the server certificates (server.crt, server.key) inside the container at runtime.
+
+---
+
+### 4. Dockerize the FastAPI Server
 
 Create a `Dockerfile`:
 
 ```Dockerfile
 FROM python:3.11-slim
-
 WORKDIR /app
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
 COPY src/ .
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile", "/app/server.key", "--ssl-certfile", "/app/server.crt"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile", "/certs/tls.key", "--ssl-certfile", "/certs/tls.crt"]
 ```
 
 And `requirements.txt`:
@@ -121,33 +168,20 @@ kubectl apply -f manifests/service.yaml
 kubectl apply -f manifests/validating-webhook.yaml
 kubectl apply -f manifests/mutating-webhook.yaml
 ```
-
+> **Note:** Before applying the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration`, make sure to update the `caBundle:` field with the Base64-encoded CA certificate output from the `generate-cert.sh` script.
 ---
 
 ### 5. Test!
 
 Test with a **bad** pod (blocked by validating webhook):
 
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: evil-pod
-  labels:
-    evil: "true"
-spec:
-  containers:
-  - name: nginx
-    image: nginx
-```
-
 ```bash
-kubectl apply -f manifests/test-pod.yaml
+kubectl apply -f manifests/test-pod-validation-fail.yaml
 ```
 
 You should get:
 
-```
+```vb
 Error from server: admission webhook "validate.webhook.default.svc" denied the request: Pods with 'evil: true' label are not allowed.
 ```
 
@@ -177,8 +211,11 @@ added-by-webhook: "true"
 |:--------|:---------|
 | **Webhook server failed** | Wrong content-type or wrong admission.k8s.io/v1 format — we fixed the FastAPI handler to correctly return AdmissionReview JSON |
 | **Cert invalid error** | Earlier certs didn't match the service DNS name, then we regenerated them using `subjectAltName=DNS:webhook.default.svc` |
+| **Cert SAN (Subject Alternative Name) missing** | Certificates had CN but no SAN entry | Explicitly added `subjectAltName=DNS:webhook.default.svc` in cert generation (this is critical, Kubernetes verifies SAN not just CN). |
 | **Internal server error** | Webhook returned wrong response (`/Kind=`, missing `apiVersion`) — fixed response format strictly. |
 | **Pod stuck creating** | FastAPI was not serving on HTTPS properly — fixed by using correct `--ssl-keyfile` and `--ssl-certfile` with Uvicorn |
+| **Webhook server startup failed** | Wrong TLS key/cert or not mounted properly | Moved certs into Kubernetes Secrets and mounted at runtime cleanly. |
+| **Kubernetes API rejected Webhook registration** | CA Bundle in webhook config was wrong/empty | After generating ca.crt, base64 encode it and insert into caBundle manually or dynamically.
 
 ---
 
@@ -195,12 +232,3 @@ added-by-webhook: "true"
 ## 🤝 Contributions Welcome
 
 If you find a better way to optimize this or want to extend it (e.g., dynamic webhook registrations, Helm chart support), feel free to open PRs!
-
----
-
-# 🌟 This is what real learning looks like.  
-Facing the mud, fighting through, and standing proud at the end.
-
----
-
----
