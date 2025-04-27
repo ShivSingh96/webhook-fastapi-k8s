@@ -1,11 +1,24 @@
 import base64
 import json
+
 def handle_mutation(body):
     request = body["request"]
     patch = []
+    
+    metadata = request.get("object", {}).get("metadata", {})
+    labels = metadata.get("labels")
 
-    labels = request.get("object", {}).get("metadata", {}).get("labels", {})
-    if "added-by-webhook" not in labels:
+    if labels is None:
+        # Add the entire labels dict first
+        patch.append({
+            "op": "add",
+            "path": "/metadata/labels",
+            "value": {
+                "added-by-webhook": "true"
+            }
+        })
+    else:
+        # Only add the new label
         patch.append({
             "op": "add",
             "path": "/metadata/labels/added-by-webhook",
