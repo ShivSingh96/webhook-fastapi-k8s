@@ -211,11 +211,11 @@ added-by-webhook: "true"
 |:--------|:---------|
 | **Webhook server failed** | Wrong content-type or wrong admission.k8s.io/v1 format — we fixed the FastAPI handler to correctly return AdmissionReview JSON |
 | **Cert invalid error** | Earlier certs didn't match the service DNS name, then we regenerated them using `subjectAltName=DNS:webhook.default.svc` |
-| **Cert SAN (Subject Alternative Name) missing** | Certificates had CN but no SAN entry | Explicitly added `subjectAltName=DNS:webhook.default.svc` in cert generation (this is critical, Kubernetes verifies SAN not just CN). |
+| **Cert SAN (Subject Alternative Name) missing** | Certificates had CN but no SAN entry, Explicitly added `subjectAltName=DNS:webhook.default.svc` in cert generation (this is critical, Kubernetes verifies SAN not just CN). |
 | **Internal server error** | Webhook returned wrong response (`/Kind=`, missing `apiVersion`) — fixed response format strictly. |
 | **Pod stuck creating** | FastAPI was not serving on HTTPS properly — fixed by using correct `--ssl-keyfile` and `--ssl-certfile` with Uvicorn |
-| **Webhook server startup failed** | Wrong TLS key/cert or not mounted properly | Moved certs into Kubernetes Secrets and mounted at runtime cleanly. |
-| **Kubernetes API rejected Webhook registration** | CA Bundle in webhook config was wrong/empty | After generating ca.crt, base64 encode it and insert into caBundle manually or dynamically.
+| **Webhook server startup failed** | Wrong TLS key/cert or not mounted properly, Moved certs into Kubernetes Secrets and mounted at runtime cleanly. |
+| **Kubernetes API rejected Webhook registration** | CA Bundle in webhook config was wrong/empty, After generating ca.crt, base64 encode it and insert into caBundle manually or dynamically. |
 
 ---
 
