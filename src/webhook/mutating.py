@@ -4,12 +4,11 @@ import json
 def handle_mutation(body):
     request = body["request"]
     patch = []
-    
-    metadata = request.get("object", {}).get("metadata", {})
-    labels = metadata.get("labels")
 
-    if labels is None:
-        # Add the entire labels dict first
+    metadata = request.get("object", {}).get("metadata", {})
+    
+    # Only mutate if 'labels' field is missing entirely
+    if "labels" not in metadata:
         patch.append({
             "op": "add",
             "path": "/metadata/labels",
@@ -17,19 +16,12 @@ def handle_mutation(body):
                 "added-by-webhook": "true"
             }
         })
-    else:
-        # Only add the new label
-        patch.append({
-            "op": "add",
-            "path": "/metadata/labels/added-by-webhook",
-            "value": "true"
-        })
 
     return {
         "response": {
             "uid": request["uid"],
             "allowed": True,
-            "patchType": "JSONPatch",
-            "patch": base64.b64encode(json.dumps(patch).encode()).decode()
+            "patchType": "JSONPatch" if patch else None,
+            "patch": base64.b64encode(json.dumps(patch).encode()).decode() if patch else None
         }
     }
